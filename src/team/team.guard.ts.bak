@@ -1,0 +1,66 @@
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { GqlExecutionContext } from '@nestjs/graphql';
+import { ApolloError } from 'apollo-server-express';
+import { ChatService } from 'src/chat/chat.service';
+import { JWT_ERRORS } from 'src/lib/jwt/jwt.messages';
+import { JwtService, JwtType } from 'src/lib/jwt/jwt.service';
+import { TeamService } from './team.service';
+import { ITeamMembersIds } from './team.types';
+
+@Injectable()
+export class TeamGuard implements CanActivate {
+  constructor(
+    private jwtService: JwtService,
+    private teamService: TeamService,
+  ) {}
+
+  private async getMembersIds(teamId: number): Promise<ITeamMembersIds> {
+    const team = await this.teamService.getTeamById(teamId);
+    const ids = team.members.map(({ id }) => id);
+    return { team, ids };
+  }
+
+  private async getUsersIds(membersIds: number[]): Promise<number[]> {
+    const users = await this.teamService.getMembers(membersIds);
+    return users.map(({ user }) => user.id);
+  }
+
+  async teamCheck(teamId: number, userId: number): Promise<boolean> {
+    const { ids, team } = await this.getMembersIds(teamId);
+    const usersIds = await this.getUsersIds(ids);
+
+    return [team?.ownerUser?.id, ...usersIds].some((item) => item === userId);
+  }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const ctx = GqlExecutionContext.create(context);
+
+    const authHeaderContent =
+      ctx.getContext().req?.headers['authorization'] ??
+      ctx.getContext().req?.headers['Authorization'];
+
+    if (!authHeaderContent) {
+      throw new ApolloError(
+        JWT_ERRORS.UNAUTHORIZED.MESSAGE,
+        JWT_ERRORS.UNAUTHORIZED.CODE,
+      );
+    }
+
+    const [headerType, token] = authHeaderContent.split(' ');
+
+    if (headerType !== 'Bearer') {
+      throw new ApolloError(
+        JWT_ERRORS.INVALID_AUTHORIZATION_HEADER.MESSAGE,
+        JWT_ERRORS.INVALID_AUTHORIZATION_HEADER.CODE,
+      );
+    }
+
+    const user = await this.jwtService.verify(token, JwtType.AUTHORIZATION);
+    ctx.getContext().req.user = user;
+
+    const teamId = ctx.getArgByIndex(1).teamId;
+    const check = await this.teamCheck(teamId, user.id);
+
+    return check;
+  }
+}

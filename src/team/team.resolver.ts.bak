@@ -1,0 +1,47 @@
+import { Resolver, Mutation, Args, Int, Query } from '@nestjs/graphql';
+import { JwtGuard } from '../lib/jwt/jwt.guard';
+import { CurrentUser } from '../lib/common/current-user.decorator';
+import { BasePayload } from '../lib/jwt/jwt.service';
+import { UseGuards, UsePipes } from '@nestjs/common';
+import { TeamMemberObject, TeamObject, TeamCreation } from './team.graphql';
+import { TeamService } from './team.service';
+import { TeamCreationPipe } from './team.pipe';
+import { TeamGuard } from './team.guard';
+import { GraphQLUpload } from 'apollo-server-express';
+import { FileUpload } from '../lib/common/common.interfaces';
+
+@Resolver('Team')
+export class TeamResolver {
+    constructor(private teamService: TeamService) { }
+
+    @Mutation(() => TeamObject)
+    @UseGuards(JwtGuard)
+    @UsePipes(TeamCreationPipe)
+    async createTeam(
+        @CurrentUser() currentUser: BasePayload,
+        @Args('team') team: TeamCreation,
+        @Args('avatar', { nullable: true, type: () => GraphQLUpload })
+        avatar?: FileUpload,
+        @Args('backgroundImage', { nullable: true, type: () => GraphQLUpload })
+        backgroundImage?: FileUpload,
+    ): Promise<TeamObject> {
+        return this.teamService.createTeam(currentUser.id, team, avatar, backgroundImage);
+    }
+
+    @Query(() => [TeamMemberObject])
+    @UseGuards(JwtGuard)
+    async getUserInvites(
+        @CurrentUser() currentUser: BasePayload,
+    ): Promise<TeamMemberObject[]> {
+        return this.teamService.getUserInvites(currentUser.id);
+    }
+    
+    @Query(() => TeamObject)
+    @UseGuards(TeamGuard)
+    async getTeam(
+        @Args('teamId', { nullable: false, type: () => Int })
+        teamId: number,
+    ): Promise<TeamObject> {
+        return this.teamService.getTeamById(teamId);
+    }
+}

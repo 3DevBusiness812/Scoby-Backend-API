@@ -1,0 +1,219 @@
+variables:
+  NS: $CI_PROJECT_NAME-$CI_ENVIRONMENT_NAME
+
+stages:
+  - test
+  - build
+  - release
+  - migrations
+  - deploy-dev
+  - deploy-stage
+  - deploy-prod
+
+.migretion-push: &migration-push
+  stage: migrations
+  image:
+    name: flomsk/awscli-kubectl:2.0.37-1.17
+    entrypoint: [""]
+  before_script:
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET
+    - export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+    - aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $K8S_CLUSTER_NAME
+    - echo $ENV | base64 -d > .env
+    - kubectl get ns $NS || kubectl create ns $NS
+    - kubectl -n $NS create secret generic $CI_PROJECT_NAME --from-file=./.env -oyaml --dry-run | kubectl -n $NS apply -f -
+    - kubectl -n $NS create secret docker-registry regcred --docker-server=$CI_REGISTRY --docker-username=$CI_DEPLOY_USER --docker-password=$CI_DEPLOY_PASSWORD --docker-email=devops@softermii.com --dry-run -o json | kubectl -n $NS apply -f -
+    - kubectl -n $NS delete job $CI_PROJECT_NAME-migrations || echo "Job is not exist"
+  script:
+    - sed -i -e 's@CONTAINER_IMAGE@'"$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"'@' -e "s@NS@$NS@" -e "s@APP@$CI_PROJECT_NAME@" -e "s@THEENV@$CI_ENVIRONMENT_NAME@" k8s/migrations-job.yaml
+    - kubectl apply -f k8s/migrations-job.yaml
+    - kubectl -n $NS wait --for=condition=complete job/$CI_PROJECT_NAME-migrations --timeout=60s
+  after_script:
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET
+    - export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+    - aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $K8S_CLUSTER_NAME
+    - kubectl -n $NS logs --tail 300 -l job-name=$CI_PROJECT_NAME-migrations
+
+test:
+  stage: test
+  image: node:14.7
+  tags:
+    - scoby-k8s
+  script:
+    - yarn install
+    - yarn test
+#  cache:
+#    key: $CI_COMMIT_REF_SLUG
+#    paths:
+#        - node_modules/
+#  artifacts:
+#    paths:
+#      - node_modules
+  only:
+    - master
+    - dev
+
+build:
+  image: node:14.7
+  stage: build
+  tags:
+    - scoby-k8s
+  script:
+    - yarn install
+    - yarn build
+  cache:
+    key: $CI_COMMIT_REF_SLUG
+    paths:
+      - node_modules/
+  artifacts:
+    paths:
+      - dist
+      - node_modules
+    expire_in: 1d
+  dependencies:
+    - test
+  only:
+    - master
+    - dev
+
+release:
+  image: docker:19-git
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
+    DOCKER_HOST: tcp://localhost:2375
+  services:
+    - docker:19-dind
+  stage: release
+  tags:
+    - scoby-k8s
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  script:
+    - docker pull $CI_REGISTRY_IMAGE:latest || echo "Latest not exist"
+    - docker build --cache-from $CI_REGISTRY_IMAGE:latest --build-arg BUILDKIT_INLINE_CACHE=1 -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -t $CI_REGISTRY_IMAGE:latest .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker push $CI_REGISTRY_IMAGE:latest
+  dependencies:
+    - build
+  only:
+    - master
+    - dev
+
+migrations-dev:
+  <<: *migration-push
+  environment:
+    name: dev
+  tags:
+    - scoby-k8s
+  variables:
+    ENV: $DEVENV
+  cache: {}
+  dependencies: []
+  only:
+    - dev
+
+migrations-stage:
+  <<: *migration-push
+  tags:
+    - scoby-k8s
+  environment:
+    name: stage
+  variables:
+    ENV: $STAGEENV
+  cache: {}
+  dependencies: []
+  only:
+    - master
+
+migrations-prod:
+  <<: *migration-push
+  tags:
+    - scoby-k8s
+  environment:
+    name: prod
+  variables:
+    ENV: $PRODENV
+  cache: {}
+  dependencies: []
+  only:
+    - master
+
+deploy-dev:
+  stage: deploy-dev
+  image:
+    name: flomsk/awscli-kubectl:2.0.37-1.17
+    entrypoint: [""]
+  tags:
+    - scoby-k8s
+  before_script:
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET
+    - export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+    - aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $K8S_CLUSTER_NAME
+    - echo $DEVENV | base64 -d > .env
+    - kubectl get ns $NS || kubectl create ns $NS
+    - kubectl -n $NS create secret generic $CI_PROJECT_NAME --from-file=./.env -oyaml --dry-run | kubectl -n $NS apply -f -
+    - kubectl -n $NS create secret docker-registry regcred --docker-server=$CI_REGISTRY --docker-username=$CI_DEPLOY_USER --docker-password=$CI_DEPLOY_PASSWORD --docker-email=devops@softermii.com --dry-run -o json | kubectl -n $NS apply -f -
+  script:
+    - sed -i -e 's@CONTAINER_IMAGE@'"$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"'@' -e "s@NS@$NS@" -e "s@APP@$CI_PROJECT_NAME@" -e "s@THEENV@$CI_ENVIRONMENT_NAME@" k8s/app.yaml
+    - kubectl apply -f k8s/app.yaml
+  environment:
+    name: dev
+  dependencies: []
+  only:
+    - dev
+
+deploy-stage:
+  stage: deploy-stage
+  image:
+    name: flomsk/awscli-kubectl:2.0.37-1.17
+    entrypoint: [""]
+  tags:
+    - scoby-k8s
+  before_script:
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET
+    - export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+    - aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $K8S_CLUSTER_NAME
+    - echo $STAGEENV | base64 -d > .env
+    - kubectl get ns $NS || kubectl create ns $NS
+    - kubectl -n $NS create secret generic $CI_PROJECT_NAME --from-file=./.env -oyaml --dry-run | kubectl -n $NS apply -f -
+    - kubectl -n $NS create secret docker-registry regcred --docker-server=$CI_REGISTRY --docker-username=$CI_DEPLOY_USER --docker-password=$CI_DEPLOY_PASSWORD --docker-email=devops@softermii.com --dry-run -o json | kubectl -n $NS apply -f -
+  script:
+    - sed -i -e 's@CONTAINER_IMAGE@'"$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"'@' -e "s@NS@$NS@" -e "s@APP@$CI_PROJECT_NAME@" -e "s@THEENV@$CI_ENVIRONMENT_NAME@" k8s/app.yaml
+    - kubectl apply -f k8s/app.yaml
+  environment:
+    name: stage
+  dependencies: []
+  only:
+    - master
+
+deploy-prod:
+  stage: deploy-prod
+  when: manual
+  image:
+    name: flomsk/awscli-kubectl:2.0.37-1.17
+    entrypoint: [""]
+  tags:
+    - scoby-k8s
+  before_script:
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET
+    - export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+    - aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $K8S_CLUSTER_NAME
+    - echo $PRODENV | base64 -d > .env
+    - kubectl get ns $NS || kubectl create ns $NS
+    - kubectl -n $NS create secret generic $CI_PROJECT_NAME --from-file=./.env -oyaml --dry-run | kubectl -n $NS apply -f -
+    - kubectl -n $NS create secret docker-registry regcred --docker-server=$CI_REGISTRY --docker-username=$CI_DEPLOY_USER --docker-password=$CI_DEPLOY_PASSWORD --docker-email=devops@softermii.com --dry-run -o json | kubectl -n $NS apply -f -
+  script:
+    - sed -i -e 's@CONTAINER_IMAGE@'"$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"'@' -e "s@NS@$NS@" -e "s@APP@$CI_PROJECT_NAME@" -e "s@THEENV@$CI_ENVIRONMENT_NAME@" k8s/app.yaml
+    - kubectl apply -f k8s/app.yaml
+  environment:
+    name: prod
+  dependencies: []
+  only:
+    - master

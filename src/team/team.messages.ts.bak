@@ -1,0 +1,15 @@
+export const TEAM_ERRORS = {
+    UNIQUE_INVITED_USERS: 'Array of users should contain unique values',
+    TEAM_NOT_FOUND:{
+        CODE:'ERR_TEAM_NOT_FOUND',
+        MESSAGE:'Team not found',
+    },
+    TEAM_FINISHED:{
+        CODE:"ERR_TEAM_FINISHED",
+        MESSAGE:'Team has been finished',
+    },
+    NOT_TEAM_OWNER:{
+        CODE:"ERR_NOT_TEAM_OWNER",
+        MESSAGE:"User is not owner of the team",
+    },
+}

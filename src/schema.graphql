@@ -1,0 +1,544 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type ActivityCounter {
+  counter: Float!
+}
+
+type ActivityUser {
+  additionalPayload: String
+  createdAt: DateTime!
+  id: Int!
+  procedure_action: Int
+  sourceUser: UserProfile!
+  type_action: String!
+}
+
+type ChatMessageObject {
+  createdAt: DateTime!
+  id: Int!
+  isRead: Boolean!
+  room: ChatRoomObject!
+  sender: UserProfile!
+  text: String!
+  updatedAt: DateTime!
+}
+
+type ChatRoomObject {
+  id: Int!
+  messages: [ChatMessageObject!]
+  participantUsers: [UserProfile!]!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input EditTeam {
+  description: String!
+  linkWebsite: String
+  name: String!
+  teamId: Int!
+  topics: [Int!]!
+}
+
+input EventCreation {
+  day: String!
+  description: String!
+  end: String!
+  invitedUsers: [Int!]
+  start: String!
+  title: String!
+  topics: [Int!]!
+}
+
+input EventUpdate {
+  day: String
+  description: String!
+  end: String
+  start: String
+  title: String!
+  topics: [Int!]!
+}
+
+type EventsObject {
+  avatar: String
+  backgroundImage: String
+  createdAt: DateTime!
+  day: String!
+  description: String!
+  end: String!
+  finishedAt: DateTime
+  id: Int!
+  ownerUser: UserProfile!
+  session: SessionLiveToSerie
+  start: String!
+  subscribed: Boolean!
+  suscribeUsers: [UserProfile!]!
+  title: String!
+  topics: [Topic!]
+  updatedAt: DateTime!
+  viewers: Float!
+}
+
+type FollowCounts {
+  followers: Int!
+  following: Int!
+}
+
+type FollowStats {
+  followedByCurrentUser: Boolean
+  followingCurrentUser: Boolean
+}
+
+type GetUsersResult {
+  data: [UserProfile!]!
+  paging: PagingObject!
+  query: String
+}
+
+type InappropriateCheckResult {
+  inappropriate: Boolean!
+  userId: Int!
+}
+
+input LeadCreation {
+  email: String!
+  firstName: String!
+  lastName: String!
+}
+
+type LeadCreationResult {
+  email: String!
+  firstName: String!
+  lastName: String!
+  phone: String!
+}
+
+type LeadSuscriptionList {
+  email: String!
+  name: String!
+}
+
+type Mutation {
+  acceptInvite(teamId: Int!): TeamMemberObject!
+  addPushToken(deviceId: String!, token: String!): PushTokenObject!
+  approveJoinRequest(applicantId: Int!, teamId: Int!): TeamObject!
+  confirmResetPassword(code: String!, phone: String!): ResetPasswordVerificationResult!
+  createChatRoom(messageText: String!, participants: [Int!]!): ChatRoomObject!
+  createEvent(avatar: Upload, backgroundImage: Upload, event: EventCreation!): EventsObject!
+  createLead(lead: LeadCreation!, registrationToken: String!): LeadCreationResult!
+  createSerie(avatar: Upload, backgroundImage: Upload, schedule: [ScheduleCreation!]!, serie: SerieCreation!): SeriesObject!
+  createSession(description: String, invitedUsers: [Int!], isPrivate: Boolean, notify: Boolean, secondScreenLink: String, title: String!, topics: [Int!]): SessionJoinObject!
+  createTeam(avatar: Upload, backgroundImage: Upload, team: TeamCreation!): TeamObject!
+  createTokenRegister(token: String!): UserVerificationResult!
+  createUser(phone: String!): UserVerificationExpire!
+  createUserProfile(profile: UserProfileCreation!): UserProfileWithAuth!
+  deleteChatRoom(room: Int!): ChatRoomObject!
+  deleteCounterActivity: ActivityCounter!
+  deleteJoinRequest(teamId: Int!, userId: Int!): TeamObject!
+  deleteTeam(teamId: Int!): TeamObject!
+  editEvent(avatar: Upload, backgroundImage: Upload, event: EventUpdate!, id: Float!): EventsObject!
+  editSerie(avatar: Upload, backgroundImage: Upload, schedule: [ScheduleCreation!]!, serie: serieEdit!, serieId: Float!): SeriesObject!
+  editTeam(avatar: Upload, backgroundImage: Upload, editTeamPayload: EditTeam!): TeamObject!
+  endEvent(idEvent: Float!): EventsObject!
+  endSerie(serieId: Float!): SeriesObject!
+  endSession(sessionId: Float!): SessionObject!
+  followUser(userId: Float!): UserProfile!
+  inviteMembers(teamId: Int!, usersIds: [Int!]!): TeamObject!
+  invitedUserEvent(idEvent: Float!, invitedUsers: [Int!]!): EventsObject!
+  invitedUsersSeries(idSerie: Float!, invitedUsers: [Int!]!): SeriesObject!
+  joinEvent(id: Float!): EventsObject!
+  joinGreenRoomSession(id: Float!, userId: Float): SessionJoinObject!
+  joinRequest(teamId: Int!): TeamObject!
+  joinSerie(id: Float!): SeriesObject!
+  joinSession(id: Float!, userId: Float): SessionJoinObject!
+  kartraCreateLeadCalendar(className: String!, nameCalendar: String!): SuscribeLeadCalendar!
+  kartraSuscribeLeadCalendar(className: String!, nameCalendar: String!): SuscribeLeadCalendar!
+  kartraUnSuscribeCalendar(calendarId: Float!): SuscribeLeadCalendar!
+  kartraUserSuscription(email: String!, name: String!): LeadSuscriptionList!
+  kickUserFromSession(sessionId: Float!, userId: Float!): SessionObject!
+  leaveEvent(id: Float!): EventsObject!
+  leaveSerie(id: Float!): SeriesObject!
+  leaveSession(sessionId: Float!): SessionObject!
+  leaveTeam(teamId: Int!): TeamMemberObject!
+  liveEvent(idEvent: Float!): SessionJoinObject!
+  liveSerie(SerieId: Float!): SessionJoinObject!
+  loginUser(password: String!, phone: String!): UserLoginResult!
+  loginUserName(password: String!, username: String!): UserVerificationExpire!
+  markUserInappropriate(userId: Float!): UserProfile!
+  resetPassword(phone: String!): UserVerificationExpire!
+  sendMessage(room: Int!, text: String!): ChatMessageObject!
+  setReadMessageStatus(ids: [Int!]!): [ChatMessageObject!]!
+  shareSession(invitedUsers: [Int!], notifyMyFollowers: Boolean!, sessionId: Float!): Boolean!
+  unfollowUser(userId: Float!): UserProfile!
+  updatePassword(password: String!, passwordResetToken: String!): UserProfileWithAuth!
+  updateSession(description: String, id: Int!): SessionObject!
+  updateTeamGeneralInfo(updateTeamPayload: TeamUpdate!): TeamObject!
+  updateUserProfile(profile: UserProfileEdit!): UserProfile!
+  uploadFile(avatar: Upload, backgroundImage: Upload): UserProfile!
+  uploadFileEvent(avatar: Upload, backgroundImage: Upload, id: Float!): EventsObject!
+  uploadFileSeries(avatar: Upload, backgroundImage: Upload, idSerie: Float!): SeriesObject!
+  verificationCodeScobyGold(code: String!, username: String!): UserLoginResult!
+  verifyPublicKey(publicKey: String!): Boolean!
+  verifyUserPhone(code: String!, phone: String!): UserVerificationResult!
+  viewSession(id: Float!, userId: Float): SessionJoinObject!
+}
+
+type PaginatedTeams {
+  data: [TeamObject!]!
+  paging: PagingObject!
+}
+
+input PagingInput {
+  limit: Int
+  page: Int
+}
+
+type PagingObject {
+  limit: Int!
+  page: Int!
+  total: Int!
+}
+
+type Ping {
+  ping: String!
+}
+
+type PushTokenObject {
+  deviceId: String!
+  id: Int!
+  token: String!
+}
+
+type Query {
+  checkInappropriateUser(userId: Float!): InappropriateCheckResult!
+  getActivity(paging: PagingInput): getActivity!
+  getAllTeams(paging: PagingInput!, query: String): PaginatedTeams!
+  getChatMessages(room: Int!): [ChatMessageObject!]!
+  getChatRoomById(roomId: Int!): ChatRoomObject!
+  getCounterActivity: ActivityCounter!
+  getEventbyId(id: Float!): EventsObject!
+  getEventsPaging(paging: PagingInput): [EventsObject!]!
+  getFollowerUsers(paging: PagingInput, userId: Float): GetUsersResult!
+  getFollowingUsers(paging: PagingInput, userId: Float): GetUsersResult!
+  getInappropriateUsers: [UserProfile!]!
+  getLiveEvents: [EventsObject!]!
+  getLiveEventsPaging(paging: PagingInput): [EventsObject!]!
+  getLiveSeriePaging(paging: PagingInput): [SeriesViewers!]!
+  getLiveSeries: [SeriesObject!]!
+  getLiveSessions: [SessionObject!]!
+  getLiveSessionsPaging(paging: PagingInput): [SessionObject!]!
+  getRecommendationsAllUsers: RecommendationsDataAllUsers!
+  getRecommendationsData: RecommendationsData!
+  getSerieById(id: Float!): SeriesObject!
+  getSeriePaging(paging: PagingInput): [SeriesObject!]!
+  getSession(id: Float!): SessionObject!
+  getSpecificChatRoom(userId: Int!): ChatRoomObject!
+  getTeam(teamId: Int!): TeamObject!
+  getTopics: [Topic!]!
+  getUserChatRooms: [ChatRoomObject!]!
+  getUserEvents(id: Float): [EventsObject!]!
+  getUserInvites: [TeamMemberObject!]!
+  getUserProfile(id: Float): UserProfile!
+  getUserSeries(id: Float): [SeriesObject!]!
+  getUserSessions: [SessionObject!]!
+  getUsers(paging: PagingInput, query: String): GetUsersResult!
+  getUsersTeams(paging: PagingInput!, query: String): PaginatedTeams!
+  getVersion: VersionObject!
+  ping: Ping!
+}
+
+type RecommendationsData {
+  birthday: DateTime!
+  follows: [UserProfile!]!
+  fullName: String
+  id: Int!
+  topics: [Topic!]!
+  username: String!
+}
+
+type RecommendationsDataAllUsers {
+  users: [RecommendationsData!]!
+}
+
+type ResetPasswordVerificationResult {
+  passwordResetToken: String!
+}
+
+input ScheduleCreation {
+  day: String!
+  end: String!
+  idSerie: Int
+  start: String!
+}
+
+type ScheduleObject {
+  day: String
+  end: String
+  id: Int!
+  start: String
+}
+
+input SerieCreation {
+  calendarName: String
+  className: String
+  description: String!
+  invitedUsers: [Int!]
+  seriesName: String!
+  topics: [Int!]!
+}
+
+type SeriesObject {
+  avatar: String
+  backgroundImage: String
+  calendarName: String
+  className: String
+  createdAt: DateTime!
+  description: String!
+  finishedAt: DateTime
+  id: Int!
+  ownerUser: UserProfile!
+  schedule: [ScheduleObject!]
+  seriesName: String!
+  session: SessionLiveToSerie
+  subscribed: Boolean!
+  suscribeUsers: [UserProfile!]!
+  topics: [Topic!]
+  updatedAt: DateTime!
+}
+
+type SeriesViewers {
+  avatar: String
+  backgroundImage: String
+  calendarName: String
+  className: String
+  createdAt: DateTime!
+  description: String!
+  finishedAt: DateTime
+  id: Int!
+  ownerUser: UserProfile!
+  paging: PagingObject!
+  schedule: [ScheduleObject!]
+  seriesName: String!
+  session: SessionLiveToSerie
+  subscribed: Boolean!
+  suscribeUsers: [UserProfile!]!
+  topics: [Topic!]
+  updatedAt: DateTime!
+  viewers: Float!
+}
+
+type SessionJoinObject {
+  session: SessionObject!
+  token: String!
+  vonageApiToken: String!
+  vonageSessionToken: String!
+  vonageUserToken: String!
+}
+
+type SessionLiveToSerie {
+  createdAt: DateTime!
+  description: String
+  finishedAt: DateTime
+  greenRoomUsers: [UserProfile!]
+  id: Int!
+  ownerUser: UserProfile!
+  participantUsers: [UserProfile!]
+  secondScreenLink: String
+  title: String
+  topics: [Topic!]!
+  updatedAt: DateTime!
+  viewerUsers: [UserProfile!]
+  vonageSessionToken: String
+}
+
+type SessionObject {
+  createdAt: DateTime!
+  description: String
+  finishedAt: DateTime
+  greenRoomUsers: [UserProfile!]!
+  id: Int!
+  invitedUsers: [UserProfile!]!
+  isPrivate: Boolean!
+  ownerUser: UserProfile!
+  participantUsers: [UserProfile!]!
+  secondScreenLink: String
+  title: String
+  topics: [Topic!]!
+  updatedAt: DateTime!
+  viewerUsers: [UserProfile!]!
+  viewers: Float!
+  vonageSessionToken: String
+}
+
+type Subscription {
+  newMessage(room: Int!): ChatMessageObject!
+  sessionClosed: SessionObject!
+  sessionCreated: SessionObject!
+  sessionUpdated: SessionObject!
+  sessionUserJoined: SessionObject!
+  sessionUserLeft: SessionObject!
+  sessionViewerJoined: SessionObject!
+  sessionViewerLeft: SessionObject!
+}
+
+type SuscribeLeadCalendar {
+  className: String!
+  email: String!
+  name: String!
+}
+
+input TeamCreation {
+  description: String!
+  invitedUsers: [Int!]
+  membersAllowedToHost: Boolean!
+  membersAllowedToInvite: Boolean!
+  name: String!
+  teamType: String!
+  topics: [Int!]!
+}
+
+type TeamMemberObject {
+  createdAt: DateTime!
+  id: Int!
+  isAccepted: Boolean
+  team: TeamObject!
+  updatedAt: DateTime!
+  user: UserProfile!
+}
+
+type TeamObject {
+  avatar: String
+  backgroundImage: String
+  createdAt: DateTime!
+  description: String
+  finishedAt: DateTime
+  id: Int!
+  linkWebsite: String
+  members: [TeamMemberObject!]
+  membersAllowedToHost: Boolean!
+  membersAllowedToInvite: Boolean!
+  name: String
+  ownerUser: UserProfile!
+  participantUsers: [UserProfile!]!
+  pendingUsers: [UserProfile!]
+  teamType: String!
+  topics: [Topic!]!
+  updatedAt: DateTime!
+}
+
+input TeamUpdate {
+  membersAllowedToHost: Boolean!
+  membersAllowedToInvite: Boolean!
+  teamId: Int!
+  teamType: String!
+}
+
+type Topic {
+  icon: String!
+  id: Int!
+  name: String!
+}
+
+"""The `Upload` scalar type represents a file upload."""
+scalar Upload
+
+type UserLoginResult {
+  authorizationToken: String!
+}
+
+type UserProfile {
+  avatar: String
+  backgroundImage: String
+  bio: String
+  birthday: DateTime!
+  createdAt: DateTime!
+  email: String
+  followCounts: FollowCounts!
+  followStats: FollowStats!
+  fullName: String
+  id: Int!
+  location: String
+  phone: String!
+  publicKey: String
+  role: String
+  topics: [Topic!]!
+  updatedAt: DateTime!
+  username: String!
+  vonageUserToken: String
+  website: String
+}
+
+input UserProfileCreation {
+  birthday: DateTime!
+  email: String!
+  fullName: String!
+  password: String!
+  registrationToken: String!
+  topics: [Int!]!
+  username: String!
+}
+
+input UserProfileEdit {
+  bio: String
+  birthday: DateTime
+  email: String
+  fullName: String
+  location: String
+  publicKey: String
+  topics: [Int!]
+  username: String
+  website: String
+}
+
+type UserProfileWithAuth {
+  auth: UserLoginResult!
+  avatar: String
+  backgroundImage: String
+  bio: String
+  birthday: DateTime!
+  createdAt: DateTime!
+  email: String
+  followCounts: FollowCounts!
+  followStats: FollowStats!
+  fullName: String
+  id: Int!
+  location: String
+  phone: String!
+  publicKey: String
+  role: String
+  topics: [Topic!]!
+  updatedAt: DateTime!
+  username: String!
+  vonageUserToken: String
+  website: String
+}
+
+type UserVerificationExpire {
+  phone: String!
+  verificationExpire: DateTime!
+}
+
+type UserVerificationResult {
+  registrationToken: String!
+}
+
+type VersionObject {
+  version: String!
+}
+
+type getActivity {
+  data: [ActivityUser!]!
+  paging: PagingObject!
+}
+
+input serieEdit {
+  calendarName: String
+  className: String
+  description: String!
+  seriesName: String!
+  topics: [Int!]!
+}

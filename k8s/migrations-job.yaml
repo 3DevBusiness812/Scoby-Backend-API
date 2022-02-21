@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: APP-migrations
+  namespace: NS
+spec:
+  template:
+    spec:
+      containers:
+      - name: APP-migrations
+        image: CONTAINER_IMAGE
+        imagePullPolicy: Always
+        command: ["/bin/sh","-c"]
+        args: ["yarn migrate"]
+        volumeMounts:
+        - name: config
+          mountPath: /app/.env
+          subPath: .env
+        resources:
+          limits:
+            memory: 512Mi
+          requests:
+            memory: 128Mi
+      volumes:
+        - name: config
+          secret:
+            secretName: APP
+        - name: migration-env
+          secret:
+            secretName: APP-migrations
+      imagePullSecrets:
+        - name: regcred
+      restartPolicy: Never
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 120

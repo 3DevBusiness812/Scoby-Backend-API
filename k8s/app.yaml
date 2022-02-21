@@ -1,0 +1,102 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: APP
+  namespace: NS
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-valid"
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/send_timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "3600"
+spec:
+  rules:
+  - host: be-THEENV-scoby.softermii.co
+    http: &http_rules
+      paths:
+      - backend:
+          serviceName: APP
+          servicePort: 80
+  tls:
+    - hosts:
+        - be-THEENV-scoby.softermii.co
+      secretName: be-THEENV-scoby.softermii.co
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: APP
+  name: APP
+  namespace: NS
+spec:
+  type: ClusterIP
+  ports:
+    - name: back
+      port: 80
+      targetPort: back
+  selector:
+    app: APP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: APP
+  namespace: NS
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: APP
+  template:
+    metadata:
+      labels:
+        app: APP
+    spec:
+      containers:
+        - name: APP
+          image: CONTAINER_IMAGE
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: back
+          volumeMounts:
+          - name: config
+            mountPath: /app/.env
+            subPath: .env
+          resources:
+            limits:
+              memory: 512Mi
+            requests:
+              memory: 64Mi
+              cpu: 250m
+      volumes:
+        - name: config
+          secret:
+            secretName: APP
+      imagePullSecrets:
+        - name: regcred
+  revisionHistoryLimit: 2
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: APP-autoscaler
+  namespace: NS
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: APP
+  minReplicas: 1
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
